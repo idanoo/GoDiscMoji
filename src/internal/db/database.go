@@ -45,7 +45,16 @@ func (db *Database) runMigrations() (*Database, error) {
 		"`emoji_id` TEXT, " +
 		"`timestamp` DATETIME, `viewed` INT DEFAULT 0" +
 		")")
+	if err != nil {
+		return db, err
+	}
 
+	_, err = db.db.Exec("CREATE INDEX IF NOT EXISTS `idx_emoji_usage_guild_id_user_id` ON `emoji_usage` (`guild_id`, `user_id`, `emoji_id`)")
+	if err != nil {
+		return db, err
+	}
+
+	_, err = db.db.Exec("CREATE INDEX IF NOT EXISTS `idx_emoji_usage_emoji_id,guild_id` ON `emoji_usage` (`guild_id`, `emoji_id`)")
 	return db, err
 }
 
