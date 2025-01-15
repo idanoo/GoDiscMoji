@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"fmt"
 	"log/slog"
 	"strings"
 
@@ -20,34 +21,8 @@ var (
 	}
 
 	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
-		"show-top-emojis": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			top, err := b.Db.GetTopEmojisForGuild(i.GuildID, 5)
-			if err != nil {
-				slog.Error("Error getting top emojis", "err", err)
-				return
-			}
-
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: "Top Emojis:\n" + strings.Join(top, "\n"),
-				},
-			})
-		},
-		"show-top-users": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			top, err := b.Db.GetTopUsersForGuild(i.GuildID, 5)
-			if err != nil {
-				slog.Error("Error getting top users", "err", err)
-				return
-			}
-
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: "Top Users:\n" + strings.Join(top, "\n"),
-				},
-			})
-		},
+		"show-top-emojis": showTopEmojis,
+		"show-top-users":  showTopUsers,
 	}
 )
 
@@ -72,4 +47,68 @@ func (bot *Bot) DeregisterCommands() {
 			slog.Error("Error deleting command", "err", err)
 		}
 	}
+}
+
+// showTopEmojis - Show top emojis with users
+func showTopEmojis(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	top, err := b.Db.GetTopEmojisForGuild(i.GuildID, 5)
+	if err != nil {
+		slog.Error("Error getting top emojis", "err", err)
+		return
+	}
+
+	msg := "Most used emojis:\n"
+	for k, v := range top {
+		topUsers, err := b.Db.GetTopUsersForGuildEmoji(i.GuildID, k, 3)
+		if err != nil {
+			slog.Error("Error getting top users for guild emoji", "err", err)
+			continue
+		}
+
+		users := []string{}
+		msg += fmt.Sprintf("%s: %d", k, v)
+		for sk, sv := range topUsers {
+			users = append(users, fmt.Sprintf("<@%s>: %d", sk, sv))
+		}
+		msg += "  (" + strings.Join(users, ", ") + ")\n"
+	}
+
+	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: msg,
+		},
+	})
+}
+
+// showTopUsers - Show top users with emojis
+func showTopUsers(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	top, err := b.Db.GetTopUsersForGuild(i.GuildID, 5)
+	if err != nil {
+		slog.Error("Error getting top users", "err", err)
+		return
+	}
+
+	msg := "Users who use the most emojis:\n"
+	for k, v := range top {
+		topUsers, err := b.Db.GetTopEmojisForGuildUser(i.GuildID, k, 3)
+		if err != nil {
+			slog.Error("Error getting top emojis for guild user", "err", err)
+			continue
+		}
+
+		users := []string{}
+		msg += fmt.Sprintf("<@%s>: %d", k, v)
+		for sk, sv := range topUsers {
+			users = append(users, fmt.Sprintf("%s: %d", sk, sv))
+		}
+		msg += "  (" + strings.Join(users, ", ") + ")\n"
+	}
+
+	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: msg,
+		},
+	})
 }
