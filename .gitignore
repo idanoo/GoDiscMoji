@@ -1,0 +1,3 @@
+.env
+src/build/*
+src/tmp/*

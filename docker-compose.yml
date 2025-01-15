@@ -1,0 +1,12 @@
+services:
+  godiscmoji:
+    container_name: GoDiscMoji
+    build:
+      context: .
+      dockerfile: air/Dockerfile
+    working_dir: /app
+    volumes:
+      - ./src:/app
+      - ./src/build:/data
+    restart: always
+    env_file: ".env"
