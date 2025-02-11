@@ -9,14 +9,37 @@ import (
 )
 
 var (
+	integerOptionMinValue = 5.0
+	amountKey             = "amount"
+
 	commands = []*discordgo.ApplicationCommand{
 		{
 			Name:        "show-top-emojis",
 			Description: "Show top emojis",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionInteger,
+					Name:        amountKey,
+					Description: "Amount to show",
+					MinValue:    &integerOptionMinValue,
+					MaxValue:    20,
+					Required:    false,
+				},
+			},
 		},
 		{
 			Name:        "show-top-users",
 			Description: "Show top users",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionInteger,
+					Name:        amountKey,
+					Description: "Amount to show",
+					MinValue:    &integerOptionMinValue,
+					MaxValue:    20,
+					Required:    false,
+				},
+			},
 		},
 	}
 
@@ -51,7 +74,19 @@ func (bot *Bot) DeregisterCommands() {
 
 // showTopEmojis - Show top emojis with users
 func showTopEmojis(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	top, err := b.Db.GetTopEmojisForGuild(i.GuildID, 5)
+	// Access options in the order provided by the user.
+	options := i.ApplicationCommandData().Options
+	optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
+	for _, opt := range options {
+		optionMap[opt.Name] = opt
+	}
+
+	amount := int64(5)
+	if opt, ok := optionMap[amountKey]; ok {
+		amount = opt.IntValue()
+	}
+
+	top, err := b.Db.GetTopEmojisForGuild(i.GuildID, amount)
 	if err != nil {
 		slog.Error("Error getting top emojis", "err", err)
 		return
@@ -84,7 +119,19 @@ func showTopEmojis(s *discordgo.Session, i *discordgo.InteractionCreate) {
 
 // showTopUsers - Show top users with emojis
 func showTopUsers(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	top, err := b.Db.GetTopUsersForGuild(i.GuildID, 5)
+	// Access options in the order provided by the user.
+	options := i.ApplicationCommandData().Options
+	optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
+	for _, opt := range options {
+		optionMap[opt.Name] = opt
+	}
+
+	amount := int64(5)
+	if opt, ok := optionMap[amountKey]; ok {
+		amount = opt.IntValue()
+	}
+
+	top, err := b.Db.GetTopUsersForGuild(i.GuildID, amount)
 	if err != nil {
 		slog.Error("Error getting top users", "err", err)
 		return

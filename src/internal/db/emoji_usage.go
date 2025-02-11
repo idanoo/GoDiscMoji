@@ -11,7 +11,7 @@ func (db *Database) LogEmojiUsage(guildID, channelID, userID, emojiID string) er
 }
 
 // GetTopUsersForGuild - Report usage
-func (db *Database) GetTopUsersForGuild(guildID string, num int) (map[string]int64, error) {
+func (db *Database) GetTopUsersForGuild(guildID string, num int64) (map[string]int64, error) {
 	data := make(map[string]int64)
 	row, err := db.db.Query(
 		"SELECT user_id, count(*) FROM `emoji_usage` WHERE `guild_id` = ? GROUP BY user_id ORDER BY count(*) DESC LIMIT ?",
@@ -60,7 +60,7 @@ func (db *Database) GetTopUsersForGuildEmoji(guildID string, emojiID string, num
 }
 
 // GetTopEmojisForGuild - Report usage
-func (db *Database) GetTopEmojisForGuild(guildID string, num int) (map[string]int64, error) {
+func (db *Database) GetTopEmojisForGuild(guildID string, num int64) (map[string]int64, error) {
 	data := make(map[string]int64)
 	row, err := db.db.Query(
 		"SELECT emoji_id, count(*) FROM `emoji_usage` WHERE `guild_id` = ? GROUP BY emoji_id ORDER BY count(*) DESC LIMIT ?",
