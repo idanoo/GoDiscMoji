@@ -77,7 +77,6 @@ func showTopEmojis(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Content:         msg,
-			TTS:             true,
 			AllowedMentions: &discordgo.MessageAllowedMentions{},
 		},
 	})
@@ -111,7 +110,6 @@ func showTopUsers(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Content:         msg,
-			TTS:             true,
 			AllowedMentions: &discordgo.MessageAllowedMentions{},
 		},
 	})
