@@ -1,7 +1,5 @@
 package db
 
-import "log/slog"
-
 type EmojiMap struct {
 	EmojiID string
 	Count   int64
@@ -18,8 +16,8 @@ func (db *Database) LogEmojiUsage(guildID, channelID, userID, emojiID string) er
 }
 
 // GetTopUsersForGuild - Report usage
-func (db *Database) GetTopUsersForGuild(guildID string, num int64) (map[string]int64, error) {
-	data := make(map[string]int64)
+func (db *Database) GetTopUsersForGuild(guildID string, num int64) (map[int]EmojiMap, error) {
+	data := make(map[int]EmojiMap)
 	row, err := db.db.Query(
 		"SELECT user_id, count(*) FROM `emoji_usage` WHERE `guild_id` = ? GROUP BY user_id ORDER BY count(*) DESC LIMIT ?",
 		guildID,
@@ -31,20 +29,20 @@ func (db *Database) GetTopUsersForGuild(guildID string, num int64) (map[string]i
 	}
 
 	defer row.Close()
+	i := 0
 	for row.Next() {
-		var user string
+		var name string
 		var count int64
-		row.Scan(&user, &count)
-		slog.Error("Error getting top emojis for guild user", "user_id", user, "count", count)
-		data[user] = count
+		row.Scan(&name, &count)
+		data[i] = EmojiMap{EmojiID: name, Count: count}
+		i++
 	}
-
 	return data, nil
 }
 
 // GetTopUsersForGuildEmoji - Report usage
-func (db *Database) GetTopUsersForGuildEmoji(guildID string, emojiID string, num int) (map[string]int64, error) {
-	data := make(map[string]int64)
+func (db *Database) GetTopUsersForGuildEmoji(guildID string, emojiID string, num int) (map[int]EmojiMap, error) {
+	data := make(map[int]EmojiMap)
 	row, err := db.db.Query(
 		"SELECT user_id, count(*) FROM `emoji_usage` WHERE `guild_id` = ? AND `emoji_id` = ? GROUP BY emoji_id, user_id ORDER BY count(*) DESC LIMIT ?",
 		guildID,
@@ -57,11 +55,13 @@ func (db *Database) GetTopUsersForGuildEmoji(guildID string, emojiID string, num
 	}
 
 	defer row.Close()
+	i := 0
 	for row.Next() {
-		var user string
+		var name string
 		var count int64
-		row.Scan(&user, &count)
-		data[user] = count
+		row.Scan(&name, &count)
+		data[i] = EmojiMap{EmojiID: name, Count: count}
+		i++
 	}
 
 	return data, nil

@@ -3,6 +3,7 @@ package bot
 import (
 	"fmt"
 	"log/slog"
+	"sort"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
@@ -92,18 +93,30 @@ func showTopEmojis(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		return
 	}
 
+	// Sort keys
+	keys := make([]int, 0)
+	for k, _ := range top {
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
 	msg := "Most used emojis:\n"
-	for _, v := range top {
-		topUsers, err := b.Db.GetTopUsersForGuildEmoji(i.GuildID, v.EmojiID, 3)
+	for _, v := range keys {
+		topUsers, err := b.Db.GetTopUsersForGuildEmoji(i.GuildID, top[v].EmojiID, 3)
 		if err != nil {
 			slog.Error("Error getting top users for guild emoji", "err", err)
 			continue
 		}
 
+		subkeys := make([]int, 0)
+		for k, _ := range topUsers {
+			subkeys = append(subkeys, k)
+		}
+		sort.Ints(subkeys)
+
 		users := []string{}
-		msg += fmt.Sprintf("%s: %d", v.EmojiID, v.Count)
-		for sk, sv := range topUsers {
-			users = append(users, fmt.Sprintf("<@%s>: %d", sk, sv))
+		msg += fmt.Sprintf("%s: %d", top[v].EmojiID, top[v].Count)
+		for _, sv := range subkeys {
+			users = append(users, fmt.Sprintf("<@%s>: %d", topUsers[sv].EmojiID, topUsers[sv].Count))
 		}
 		msg += "  (" + strings.Join(users, ", ") + ")\n"
 	}
@@ -137,19 +150,31 @@ func showTopUsers(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		return
 	}
 
+	// Sort keys
+	keys := make([]int, 0)
+	for k, _ := range top {
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+
 	msg := "Users who use the most emojis:\n"
-	for k, v := range top {
-		slog.Error("Error getting top emojis for guild user", "user_id", k, "count", v)
-		topUsers, err := b.Db.GetTopEmojisForGuildUser(i.GuildID, k, 3)
+	for _, v := range keys {
+		topUsers, err := b.Db.GetTopEmojisForGuildUser(i.GuildID, top[v].EmojiID, 3)
 		if err != nil {
 			slog.Error("Error getting top emojis for guild user", "err", err)
 			continue
 		}
 
+		subkeys := make([]int, 0)
+		for k, _ := range topUsers {
+			subkeys = append(subkeys, k)
+		}
+		sort.Ints(subkeys)
+
 		users := []string{}
-		msg += fmt.Sprintf("<@%s>: %d", k, v)
-		for _, sv := range topUsers {
-			users = append(users, fmt.Sprintf("%s: %d", sv.EmojiID, sv.Count))
+		msg += fmt.Sprintf("<@%s>: %d", top[v].EmojiID, top[v].Count)
+		for _, sv := range subkeys {
+			users = append(users, fmt.Sprintf("%s: %d", topUsers[sv].EmojiID, topUsers[sv].Count))
 		}
 		msg += "  (" + strings.Join(users, ", ") + ")\n"
 	}
