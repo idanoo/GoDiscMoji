@@ -68,7 +68,7 @@ func showTopEmojis(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		users := []string{}
 		msg += fmt.Sprintf("%s: %d", k, v)
 		for sk, sv := range topUsers {
-			users = append(users, fmt.Sprintf("`@%s`: %d", sk, sv))
+			users = append(users, fmt.Sprintf("<@%s>: %d", sk, sv))
 		}
 		msg += "  (" + strings.Join(users, ", ") + ")\n"
 	}
@@ -76,7 +76,8 @@ func showTopEmojis(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
-			Content: msg,
+			Content:         msg,
+			AllowedMentions: &discordgo.MessageAllowedMentions{},
 		},
 	})
 }
@@ -98,7 +99,7 @@ func showTopUsers(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		}
 
 		users := []string{}
-		msg += fmt.Sprintf("`@%s`: %d", k, v)
+		msg += fmt.Sprintf("<@%s>: %d", k, v)
 		for sk, sv := range topUsers {
 			users = append(users, fmt.Sprintf("%s: %d", sk, sv))
 		}
@@ -108,7 +109,8 @@ func showTopUsers(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
-			Content: msg,
+			Content:         msg,
+			AllowedMentions: &discordgo.MessageAllowedMentions{},
 		},
 	})
 }
