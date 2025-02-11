@@ -9,6 +9,8 @@ import (
 	"github.com/idanoo/GoDiscMoji/internal/db"
 )
 
+const dynoUserID = "1335855288439541802"
+
 var b *Bot
 
 type Bot struct {
@@ -79,6 +81,11 @@ func (bot *Bot) Start() error {
 
 // HandleReaction - Simply log it
 func (bot *Bot) HandleReaction(discord *discordgo.Session, reaction *discordgo.MessageReactionAdd) {
+	// Ignore Dyno user
+	if reaction.UserID == dynoUserID {
+		return
+	}
+
 	err := bot.Db.LogEmojiUsage(reaction.GuildID, reaction.ChannelID, reaction.UserID, reaction.Emoji.Name)
 	if err != nil {
 		slog.Error("Failed to log emoji usage", "err", err)
