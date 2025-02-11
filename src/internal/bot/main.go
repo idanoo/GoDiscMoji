@@ -52,7 +52,6 @@ func (bot *Bot) Start() error {
 	})
 
 	// Add handlers
-	// bot.DiscordSession.AddHandler(bot.HandleMessage)
 	bot.DiscordSession.AddHandler(bot.HandleReaction)
 
 	// Load session
@@ -77,27 +76,6 @@ func (bot *Bot) Start() error {
 
 	return nil
 }
-
-// func (bot *Bot) HandleMessage(discord *discordgo.Session, message *discordgo.MessageCreate) {
-// 	// Don't reply to self
-// 	if message.Author.ID == discord.State.User.ID {
-// 		return
-// 	}
-
-// 	slog.Info("Message received", "message", message.Content)
-// 	// respond to user message if it contains `!help` or `!bye`
-// 	switch {
-// 	case strings.HasPrefix(message.Content, "!help"):
-// 		_, err := discord.ChannelMessageSend(message.ChannelID, "Hello World😃")
-// 		if err != nil {
-// 			slog.Error("Failed to send message", "err", err)
-// 		}
-// 	case strings.Contains(message.Content, "!bye"):
-// 		discord.ChannelMessageSend(message.ChannelID, "Good Bye👋")
-// 		// add more cases if required
-// 	}
-
-// }
 
 // HandleReaction - Simply log it
 func (bot *Bot) HandleReaction(discord *discordgo.Session, reaction *discordgo.MessageReactionAdd) {
