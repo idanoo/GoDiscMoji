@@ -68,7 +68,7 @@ func showTopEmojis(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		users := []string{}
 		msg += fmt.Sprintf("%s: %d", k, v)
 		for sk, sv := range topUsers {
-			users = append(users, fmt.Sprintf("<@%s>: %d", sk, sv))
+			users = append(users, fmt.Sprintf("<%s>: %d", sk, sv))
 		}
 		msg += "  (" + strings.Join(users, ", ") + ")\n"
 	}
@@ -98,7 +98,7 @@ func showTopUsers(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		}
 
 		users := []string{}
-		msg += fmt.Sprintf("<@%s>: %d", k, v)
+		msg += fmt.Sprintf("<%s>: %d", k, v)
 		for sk, sv := range topUsers {
 			users = append(users, fmt.Sprintf("%s: %d", sk, sv))
 		}
