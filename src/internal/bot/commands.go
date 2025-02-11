@@ -93,15 +93,15 @@ func showTopEmojis(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	}
 
 	msg := "Most used emojis:\n"
-	for _, v := range top {
-		topUsers, err := b.Db.GetTopUsersForGuildEmoji(i.GuildID, v.EmojiID, 3)
+	for k, v := range top {
+		topUsers, err := b.Db.GetTopUsersForGuildEmoji(i.GuildID, k, 3)
 		if err != nil {
 			slog.Error("Error getting top users for guild emoji", "err", err)
 			continue
 		}
 
 		users := []string{}
-		msg += fmt.Sprintf("%s: %d", v.EmojiID, v.Count)
+		msg += fmt.Sprintf("%s: %d", k, v)
 		for sk, sv := range topUsers {
 			users = append(users, fmt.Sprintf("<@%s>: %d", sk, sv))
 		}
@@ -147,8 +147,8 @@ func showTopUsers(s *discordgo.Session, i *discordgo.InteractionCreate) {
 
 		users := []string{}
 		msg += fmt.Sprintf("<@%s>: %d", k, v)
-		for _, sv := range topUsers {
-			users = append(users, fmt.Sprintf("%s: %d", sv.EmojiID, sv.Count))
+		for sk, sv := range topUsers {
+			users = append(users, fmt.Sprintf("%s: %d", sk, sv))
 		}
 		msg += "  (" + strings.Join(users, ", ") + ")\n"
 	}
