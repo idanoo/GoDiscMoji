@@ -1,5 +1,7 @@
 package db
 
+import "log/slog"
+
 // LogEmojiUsage - Log usage
 func (db *Database) LogEmojiUsage(guildID, channelID, userID, emojiID string) error {
 	_, err := db.db.Exec(
@@ -28,6 +30,7 @@ func (db *Database) GetTopUsersForGuild(guildID string, num int64) (map[string]i
 		var user string
 		var count int64
 		row.Scan(&user, &count)
+		slog.Error("Error getting top emojis for guild user", "user_id", user, "count", count)
 		data[user] = count
 	}
 

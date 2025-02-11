@@ -139,7 +139,7 @@ func showTopUsers(s *discordgo.Session, i *discordgo.InteractionCreate) {
 
 	msg := "Users who use the most emojis:\n"
 	for k, v := range top {
-		slog.Error("Error getting top emojis for guild user", "emoji_id", k, "count", v)
+		slog.Error("Error getting top emojis for guild user", "user_id", k, "count", v)
 		topUsers, err := b.Db.GetTopEmojisForGuildUser(i.GuildID, k, 3)
 		if err != nil {
 			slog.Error("Error getting top emojis for guild user", "err", err)
