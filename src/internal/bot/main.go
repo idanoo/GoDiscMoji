@@ -54,7 +54,9 @@ func (bot *Bot) Start() error {
 	})
 
 	// Add handlers
-	bot.DiscordSession.AddHandler(bot.HandleReaction)
+	bot.DiscordSession.AddHandler(bot.HandleAddReaction)
+	bot.DiscordSession.AddHandler(bot.HandleRemoveReaction)
+	bot.DiscordSession.AddHandler(bot.HandleRemoveAllReaction)
 
 	// Load session
 	err = discord.Open()
@@ -80,14 +82,35 @@ func (bot *Bot) Start() error {
 }
 
 // HandleReaction - Simply log it
-func (bot *Bot) HandleReaction(discord *discordgo.Session, reaction *discordgo.MessageReactionAdd) {
+func (bot *Bot) HandleAddReaction(discord *discordgo.Session, reaction *discordgo.MessageReactionAdd) {
 	// Ignore Dyno user
 	if reaction.UserID == dynoUserID {
 		return
 	}
 
-	err := bot.Db.LogEmojiUsage(reaction.GuildID, reaction.ChannelID, reaction.UserID, reaction.Emoji.Name)
+	err := bot.Db.LogEmojiUsage(reaction.GuildID, reaction.ChannelID, reaction.MessageID, reaction.UserID, reaction.Emoji.Name)
 	if err != nil {
 		slog.Error("Failed to log emoji usage", "err", err)
+	}
+}
+
+// HandleRemoveReaction - Remove for user/message/emoji
+func (bot *Bot) HandleRemoveReaction(discord *discordgo.Session, reaction *discordgo.MessageReactionRemove) {
+	// Ignore Dyno user
+	if reaction.UserID == dynoUserID {
+		return
+	}
+
+	err := bot.Db.DeleteEmojiUsage(reaction.GuildID, reaction.ChannelID, reaction.MessageID, reaction.UserID, reaction.Emoji.Name)
+	if err != nil {
+		slog.Error("Failed to delete single emoji usage", "err", err)
+	}
+}
+
+// HandleRemoveAllReaction - Remove all for message
+func (bot *Bot) HandleRemoveAllReaction(discord *discordgo.Session, reaction *discordgo.MessageReactionRemoveAll) {
+	err := bot.Db.DeleteEmojiAll(reaction.GuildID, reaction.ChannelID, reaction.MessageID)
+	if err != nil {
+		slog.Error("Failed to delete all emoji usage for message", "err", err)
 	}
 }

@@ -6,10 +6,30 @@ type EmojiMap struct {
 }
 
 // LogEmojiUsage - Log usage
-func (db *Database) LogEmojiUsage(guildID, channelID, userID, emojiID string) error {
+func (db *Database) LogEmojiUsage(guildID, channelID, messageID, userID, emojiID string) error {
 	_, err := db.db.Exec(
-		"INSERT INTO `emoji_usage` (`guild_id`, `channel_id`, `user_id`, `emoji_id`, `timestamp`) VALUES (?,?,?,?, datetime())",
-		guildID, channelID, userID, emojiID,
+		"INSERT INTO `emoji_usage` (`guild_id`, `channel_id`, `message_id`, `user_id`, `emoji_id`, `timestamp`) VALUES (?,?,?,?,?, datetime())",
+		guildID, channelID, messageID, userID, emojiID,
+	)
+
+	return err
+}
+
+// DeleteEmojiUsage - Delete for guild/channel/message/user
+func (db *Database) DeleteEmojiUsage(guildID, channelID, messageID, userID, emojiID string) error {
+	_, err := db.db.Exec(
+		"DELETE FROM `emoji_usage` WHERE `guild_id` = ? AND `channel_id` = ? AND `message_id` = ? AND `user_id` = ? AND `emoji_id` = ?",
+		guildID, channelID, messageID, userID, emojiID,
+	)
+
+	return err
+}
+
+// DeleteEmojiAll - Delete for whole message
+func (db *Database) DeleteEmojiAll(guildID, channelID, messageID string) error {
+	_, err := db.db.Exec(
+		"DELETE FROM `emoji_usage` WHERE `guild_id` = ? AND `channel_id` = ? AND `message_id` = ?",
+		guildID, channelID, messageID,
 	)
 
 	return err
