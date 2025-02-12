@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	integerOptionMinValue = 5.0
+	integerOptionMinValue = 1.0
 	amountKey             = "amount"
 
 	commands = []*discordgo.ApplicationCommand{
