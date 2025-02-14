@@ -61,6 +61,14 @@ func (db *Database) runMigrations() (*Database, error) {
 	}
 
 	_, err = db.db.Exec("CREATE INDEX IF NOT EXISTS `idx_emoji_usage_emoji_id,guild_id` ON `emoji_usage` (`guild_id`, `emoji_id`)")
+	if err != nil {
+		return db, err
+	}
+
+	_, err = db.db.Exec("DELETE FROM emoji_usage WHERE user_id = 155149108183695360")
+	if err != nil {
+		return db, err
+	}
 	return db, err
 }
 

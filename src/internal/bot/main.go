@@ -9,7 +9,7 @@ import (
 	"github.com/idanoo/GoDiscMoji/internal/db"
 )
 
-const dynoUserID = "1335855288439541802"
+const dynoUserID = "155149108183695360"
 
 var b *Bot
 
