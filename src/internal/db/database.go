@@ -64,7 +64,6 @@ func (db *Database) runMigrations() (*Database, error) {
 	if err != nil {
 		return db, err
 	}
-	_, err = db.db.Exec("DELETE FROM emoji_usage WHERE user_id = 155559198451564544")
 
 	return db, err
 }
