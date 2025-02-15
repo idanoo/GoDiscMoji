@@ -13,10 +13,12 @@ var (
 	integerOptionMinValue = 1.0
 	amountKey             = "amount"
 
-	commands = []*discordgo.ApplicationCommand{
+	defaultRunCommandPermissions int64 = discordgo.PermissionKickMembers
+	commands                           = []*discordgo.ApplicationCommand{
 		{
-			Name:        "show-top-emojis",
-			Description: "Show top emojis",
+			Name:                     "show-top-emojis",
+			Description:              "Show top emojis",
+			DefaultMemberPermissions: &defaultRunCommandPermissions,
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionInteger,
@@ -29,8 +31,9 @@ var (
 			},
 		},
 		{
-			Name:        "show-top-users",
-			Description: "Show top users",
+			Name:                     "show-top-users",
+			Description:              "Show top users",
+			DefaultMemberPermissions: &defaultRunCommandPermissions,
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionInteger,
