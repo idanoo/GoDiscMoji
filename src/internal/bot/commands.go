@@ -14,7 +14,8 @@ var (
 	amountKey             = "amount"
 
 	defaultRunCommandPermissions int64 = discordgo.PermissionKickMembers
-	commands                           = []*discordgo.ApplicationCommand{
+
+	commands = []*discordgo.ApplicationCommand{
 		{
 			Name:                     "show-top-emojis",
 			Description:              "Show top emojis",
