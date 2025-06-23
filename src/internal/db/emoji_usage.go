@@ -14,6 +14,7 @@ type EmojiUsage struct {
 	MessageID string
 	UserID    string
 	EmojiID   string
+	EmojiName string
 	Timestamp string
 }
 
@@ -158,7 +159,7 @@ func (db *Database) GetTopEmojisForGuildUser(guildID string, userID string, num 
 func (db *Database) GetRecentEmojisForUser(guildID string, userID string, hours int64) ([]EmojiUsage, error) {
 	var data []EmojiUsage
 	row, err := db.db.Query(
-		"SELECT guild_id, channel_id, message_id, user_id, emoji_id, timestamp "+
+		"SELECT guild_id, channel_id, message_id, user_id, emoji_id, emoji_name, timestamp "+
 			"FROM `emoji_usage` WHERE `guild_id` = ? AND `user_id` = ? AND timestamp >= datetime('now', '-"+fmt.Sprintf("%d", hours)+" hours') "+
 			"ORDER BY timestamp DESC",
 		guildID,
@@ -172,7 +173,7 @@ func (db *Database) GetRecentEmojisForUser(guildID string, userID string, hours 
 	defer row.Close()
 	for row.Next() {
 		usage := EmojiUsage{}
-		row.Scan(&usage.GuildID, &usage.ChannelID, &usage.MessageID, &usage.UserID, &usage.EmojiID, &usage.Timestamp)
+		row.Scan(&usage.GuildID, &usage.ChannelID, &usage.MessageID, &usage.UserID, &usage.EmojiID, &usage.EmojiName, &usage.Timestamp)
 		data = append(data, usage)
 	}
 

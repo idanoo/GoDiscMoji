@@ -268,7 +268,12 @@ func purgeRecentEmojis(s *discordgo.Session, i *discordgo.InteractionCreate) {
 
 	x := 0
 	for _, emoji := range emojis {
-		err := s.MessageReactionRemove(emoji.ChannelID, emoji.MessageID, emoji.EmojiID, emoji.UserID)
+		emojiID := emoji.EmojiID
+		if emojiID == "" {
+			emojiID = emoji.EmojiName
+		}
+
+		err := s.MessageReactionRemove(emoji.ChannelID, emoji.MessageID, emojiID, emoji.UserID)
 		if err != nil {
 			slog.Error("Error removing emoji reaction", "err", err, "emoji", emoji.EmojiID, "user", user.ID)
 			continue
