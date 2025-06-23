@@ -15,3 +15,4 @@ Discord bot to measure emoji usage
 /show-top-emojis
 # Shows top 5 emojis and their 3 biggest users
 ```
+

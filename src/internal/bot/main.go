@@ -88,7 +88,7 @@ func (bot *Bot) HandleAddReaction(discord *discordgo.Session, reaction *discordg
 		return
 	}
 
-	err := bot.Db.LogEmojiUsage(reaction.GuildID, reaction.ChannelID, reaction.MessageID, reaction.UserID, reaction.Emoji.Name)
+	err := bot.Db.LogEmojiUsage(reaction.GuildID, reaction.ChannelID, reaction.MessageID, reaction.UserID, reaction.Emoji.ID, reaction.Emoji.Name)
 	if err != nil {
 		slog.Error("Failed to log emoji usage", "err", err)
 	}
@@ -101,7 +101,7 @@ func (bot *Bot) HandleRemoveReaction(discord *discordgo.Session, reaction *disco
 		return
 	}
 
-	err := bot.Db.DeleteEmojiUsage(reaction.GuildID, reaction.ChannelID, reaction.MessageID, reaction.UserID, reaction.Emoji.Name)
+	err := bot.Db.DeleteEmojiUsage(reaction.GuildID, reaction.ChannelID, reaction.MessageID, reaction.UserID, reaction.Emoji.ID)
 	if err != nil {
 		slog.Error("Failed to delete single emoji usage", "err", err)
 	}

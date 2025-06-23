@@ -11,7 +11,6 @@ import (
 
 var (
 	integerOptionMinValue = 1.0
-	amountKey             = "amount"
 
 	defaultRunCommandPermissions int64 = discordgo.PermissionKickMembers
 
@@ -23,7 +22,7 @@ var (
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionInteger,
-					Name:        amountKey,
+					Name:        "amount",
 					Description: "Amount to show",
 					MinValue:    &integerOptionMinValue,
 					MaxValue:    20,
@@ -38,7 +37,7 @@ var (
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionInteger,
-					Name:        amountKey,
+					Name:        "amount",
 					Description: "Amount to show",
 					MinValue:    &integerOptionMinValue,
 					MaxValue:    20,
@@ -46,11 +45,31 @@ var (
 				},
 			},
 		},
+		{
+			Name:                     "purge-recent-emojis",
+			Description:              "Purges recent emojis",
+			DefaultMemberPermissions: &defaultRunCommandPermissions,
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionUser,
+					Name:        "user",
+					Description: "Select user",
+					Required:    true,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionInteger,
+					Name:        "hours",
+					Description: "Hours to purge",
+					Required:    true,
+				},
+			},
+		},
 	}
 
 	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
-		"show-top-emojis": showTopEmojis,
-		"show-top-users":  showTopUsers,
+		"show-top-emojis":     showTopEmojis,
+		"show-top-users":      showTopUsers,
+		"purge-recent-emojis": purgeRecentEmojis,
 	}
 )
 
@@ -87,7 +106,7 @@ func showTopEmojis(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	}
 
 	amount := int64(5)
-	if opt, ok := optionMap[amountKey]; ok {
+	if opt, ok := optionMap["amount"]; ok {
 		amount = opt.IntValue()
 	}
 
@@ -118,7 +137,7 @@ func showTopEmojis(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		sort.Ints(subkeys)
 
 		users := []string{}
-		msg += fmt.Sprintf("%s: %d", top[v].EmojiID, top[v].Count)
+		msg += fmt.Sprintf("<:%s:%s> %d", top[v].EmojiName, top[v].EmojiID, top[v].Count)
 		for _, sv := range subkeys {
 			users = append(users, fmt.Sprintf("<@%s>: %d", topUsers[sv].EmojiID, topUsers[sv].Count))
 		}
@@ -144,7 +163,7 @@ func showTopUsers(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	}
 
 	amount := int64(5)
-	if opt, ok := optionMap[amountKey]; ok {
+	if opt, ok := optionMap["amount"]; ok {
 		amount = opt.IntValue()
 	}
 
@@ -178,7 +197,7 @@ func showTopUsers(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		users := []string{}
 		msg += fmt.Sprintf("<@%s>: %d", top[v].EmojiID, top[v].Count)
 		for _, sv := range subkeys {
-			users = append(users, fmt.Sprintf("%s: %d", topUsers[sv].EmojiID, topUsers[sv].Count))
+			users = append(users, fmt.Sprintf("<:%s:%s> %d", topUsers[sv].EmojiName, topUsers[sv].EmojiID, topUsers[sv].Count))
 		}
 		msg += "  (" + strings.Join(users, ", ") + ")\n"
 	}
@@ -187,6 +206,76 @@ func showTopUsers(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Content:         msg,
+			AllowedMentions: &discordgo.MessageAllowedMentions{},
+		},
+	})
+}
+
+// purgeRecentEmojis - Purges recent emojis for a user
+func purgeRecentEmojis(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	// Access options in the order provided by the user.
+	options := i.ApplicationCommandData().Options
+	optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
+	for _, opt := range options {
+		optionMap[opt.Name] = opt
+	}
+
+	user := &discordgo.User{}
+	if opt, ok := optionMap["user"]; ok {
+		user = opt.UserValue(s)
+	} else {
+		slog.Error("Invalid user option provided")
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content:         "No user specified",
+				AllowedMentions: &discordgo.MessageAllowedMentions{},
+			},
+		})
+		return
+	}
+
+	hours := int64(24)
+	if opt, ok := optionMap["hours"]; ok {
+		hours = opt.IntValue()
+	} else {
+		slog.Error("Invalid hours option provided")
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content:         "No hours specified",
+				AllowedMentions: &discordgo.MessageAllowedMentions{},
+			},
+		})
+		return
+	}
+
+	emojis, err := b.Db.GetRecentEmojisForUser(i.GuildID, user.ID, hours)
+	if err != nil {
+		slog.Error("Error getting recent emojis for user", "err", err)
+		return
+	}
+
+	x := 0
+	for _, emoji := range emojis {
+		err := s.MessageReactionRemove(emoji.ChannelID, emoji.MessageID, emoji.EmojiID, emoji.UserID)
+		if err != nil {
+			slog.Error("Error removing emoji reaction", "err", err, "emoji", emoji.EmojiID, "user", user.ID)
+			continue
+		}
+
+		err = b.Db.DeleteEmojiUsage(i.GuildID, emoji.ChannelID, emoji.MessageID, emoji.UserID, emoji.EmojiID)
+		if err != nil {
+			slog.Error("Error deleting emoji usage", "err", err)
+			continue
+		}
+		x++
+	}
+
+	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content:         fmt.Sprintf("Purged %d emojis for user %s", x, user.Username),
 			AllowedMentions: &discordgo.MessageAllowedMentions{},
 		},
 	})

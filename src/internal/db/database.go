@@ -44,6 +44,7 @@ func (db *Database) runMigrations() (*Database, error) {
 		"`message_id` TEXT, " +
 		"`user_id` TEXT, " +
 		"`emoji_id` TEXT, " +
+		"`emoji_name` TEXT, " +
 		"`timestamp` DATETIME" +
 		")")
 	if err != nil {
