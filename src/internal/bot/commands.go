@@ -137,7 +137,12 @@ func showTopEmojis(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		sort.Ints(subkeys)
 
 		users := []string{}
-		msg += fmt.Sprintf("<:%s:%s> %d", top[v].EmojiName, top[v].EmojiID, top[v].Count)
+		if top[v].EmojiID == top[v].EmojiName {
+			// Handle bad data with stock emojis
+			msg += fmt.Sprintf(":%s: %d", top[v].EmojiName, top[v].Count)
+		} else {
+			msg += fmt.Sprintf("<:%s:%s> %d", top[v].EmojiName, top[v].EmojiID, top[v].Count)
+		}
 		for _, sv := range subkeys {
 			users = append(users, fmt.Sprintf("<@%s>: %d", topUsers[sv].EmojiID, topUsers[sv].Count))
 		}
@@ -197,7 +202,12 @@ func showTopUsers(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		users := []string{}
 		msg += fmt.Sprintf("<@%s>: %d", top[v].EmojiID, top[v].Count)
 		for _, sv := range subkeys {
-			users = append(users, fmt.Sprintf("<:%s:%s> %d", topUsers[sv].EmojiName, topUsers[sv].EmojiID, topUsers[sv].Count))
+			if topUsers[sv].EmojiID == topUsers[sv].EmojiName {
+				// Handle bad data with stock emojis
+				users = append(users, fmt.Sprintf(":%s: %d", topUsers[sv].EmojiName, topUsers[sv].Count))
+			} else {
+				users = append(users, fmt.Sprintf("<:%s:%s> %d", topUsers[sv].EmojiName, topUsers[sv].EmojiID, topUsers[sv].Count))
+			}
 		}
 		msg += "  (" + strings.Join(users, ", ") + ")\n"
 	}
