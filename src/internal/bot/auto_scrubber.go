@@ -50,7 +50,7 @@ func runScrubber() {
 				tmpScrub := scrubbers
 				for guildID, users := range tmpScrub {
 					for userID, interval := range users {
-						emojis, err := b.Db.GetRecentEmojisForUser(guildID, userID, 24*7*30)
+						emojis, err := b.Db.GetAllEmojisForUser(guildID, userID)
 						if err != nil {
 							slog.Error("Error getting recent emojis for user", "guild_id", guildID, "user_id", userID, "err", err)
 							continue
