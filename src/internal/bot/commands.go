@@ -293,7 +293,7 @@ func addAutoScrubber(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
-			Content:         fmt.Sprintf("Will remove %s's emojis every %d minutes", user.Username, minutes),
+			Content:         fmt.Sprintf("Will remove %s's emojis after %d minutes", user.Username, minutes),
 			AllowedMentions: &discordgo.MessageAllowedMentions{},
 		},
 	})
