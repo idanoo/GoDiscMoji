@@ -36,7 +36,6 @@ func InitDb() (*Database, error) {
 
 // runMigrations - Run migrations for connection
 func (db *Database) runMigrations() (*Database, error) {
-	// Hacked up af - Rerunnable
 	_, err := db.db.Exec("CREATE TABLE IF NOT EXISTS `emoji_usage` (" +
 		"`id` INTEGER PRIMARY KEY AUTOINCREMENT, " +
 		"`guild_id` TEXT, " +
@@ -57,6 +56,21 @@ func (db *Database) runMigrations() (*Database, error) {
 	}
 
 	_, err = db.db.Exec("CREATE INDEX IF NOT EXISTS `idx_emoji_usage_message_id_user_id_emoji_id` ON `emoji_usage` (`message_id`, `user_id`, `guild_id`, `emoji_id`)")
+	if err != nil {
+		return db, err
+	}
+
+	_, err = db.db.Exec("CREATE TABLE IF NOT EXISTS `auto_scrubber` (" +
+		"`id` INTEGER PRIMARY KEY AUTOINCREMENT, " +
+		"`guild_id` TEXT, " +
+		"`user_id` TEXT, " +
+		"`duration` INT " +
+		")")
+	if err != nil {
+		return db, err
+	}
+
+	_, err = db.db.Exec("CREATE INDEX IF NOT EXISTS `idx_auto_scrubber_guild_user` ON `auto_scrubber` (`guild_id`, `user_id`)")
 	if err != nil {
 		return db, err
 	}

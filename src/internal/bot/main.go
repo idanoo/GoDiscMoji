@@ -69,6 +69,9 @@ func (bot *Bot) Start() error {
 	bot.RegisterCommands()
 	b = bot
 
+	// Add scrubber
+	initScrubber()
+
 	// Keep running untill there is NO os interruption (ctrl + C)
 	slog.Info("Bot is now running. Press CTRL-C to exit.")
 	c := make(chan os.Signal, 1)
@@ -77,6 +80,9 @@ func (bot *Bot) Start() error {
 
 	// Deregister any commands we created
 	bot.DeregisterCommands()
+
+	// Stop scrubbin!
+	close(scrubberStop)
 
 	return nil
 }

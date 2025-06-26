@@ -1,6 +1,9 @@
 package db
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 type EmojiMap struct {
 	EmojiID   string
@@ -9,13 +12,14 @@ type EmojiMap struct {
 }
 
 type EmojiUsage struct {
+	ID        int64
 	GuildID   string
 	ChannelID string
 	MessageID string
 	UserID    string
 	EmojiID   string
 	EmojiName string
-	Timestamp string
+	Timestamp time.Time
 }
 
 // LogEmojiUsage - Log usage
@@ -33,6 +37,16 @@ func (db *Database) DeleteEmojiUsage(guildID, channelID, messageID, userID, emoj
 	_, err := db.db.Exec(
 		"DELETE FROM `emoji_usage` WHERE `guild_id` = ? AND `channel_id` = ? AND `message_id` = ? AND `user_id` = ? AND `emoji_id` = ?",
 		guildID, channelID, messageID, userID, emojiID,
+	)
+
+	return err
+}
+
+// DeleteEmojiUsageById - Delete for guild/channel/message/user
+func (db *Database) DeleteEmojiUsageById(id int64) error {
+	_, err := db.db.Exec(
+		"DELETE FROM `emoji_usage` WHERE `id` = ?",
+		id,
 	)
 
 	return err
@@ -162,6 +176,30 @@ func (db *Database) GetRecentEmojisForUser(guildID string, userID string, hours 
 		"SELECT guild_id, channel_id, message_id, user_id, emoji_id, emoji_name, timestamp "+
 			"FROM `emoji_usage` WHERE `guild_id` = ? AND `user_id` = ? AND timestamp >= datetime('now', '-"+fmt.Sprintf("%d", hours)+" hours') "+
 			"ORDER BY timestamp DESC",
+		guildID,
+		userID,
+	)
+
+	if err != nil {
+		return data, err
+	}
+
+	defer row.Close()
+	for row.Next() {
+		usage := EmojiUsage{}
+		row.Scan(&usage.GuildID, &usage.ChannelID, &usage.MessageID, &usage.UserID, &usage.EmojiID, &usage.EmojiName, &usage.Timestamp)
+		data = append(data, usage)
+	}
+
+	return data, nil
+}
+
+// GetAllEmojisForUser - Get all emojis used by user map[]
+func (db *Database) GetAllEmojisForUser(guildID string, userID string) ([]EmojiUsage, error) {
+	var data []EmojiUsage
+	row, err := db.db.Query(
+		"SELECT guild_id, channel_id, message_id, user_id, emoji_id, emoji_name, timestamp "+
+			"FROM `emoji_usage` WHERE `guild_id` = ? AND `user_id` = ?",
 		guildID,
 		userID,
 	)

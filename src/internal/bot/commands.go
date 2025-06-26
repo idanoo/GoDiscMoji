@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -46,8 +47,8 @@ var (
 			},
 		},
 		{
-			Name:                     "purge-recent-emojis",
-			Description:              "Purges recent emojis",
+			Name:                     "add-auto-scrubber",
+			Description:              "Auto Scrub Emoijis after a set period",
 			DefaultMemberPermissions: &defaultRunCommandPermissions,
 			Options: []*discordgo.ApplicationCommandOption{
 				{
@@ -58,8 +59,21 @@ var (
 				},
 				{
 					Type:        discordgo.ApplicationCommandOptionInteger,
-					Name:        "hours",
-					Description: "Hours to purge",
+					Name:        "minutes",
+					Description: "Every X minutes",
+					Required:    true,
+				},
+			},
+		},
+		{
+			Name:                     "remove-auto-scrubber",
+			Description:              "Stop autoscrubbing emojis after a set period",
+			DefaultMemberPermissions: &defaultRunCommandPermissions,
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionUser,
+					Name:        "user",
+					Description: "Select user",
 					Required:    true,
 				},
 			},
@@ -67,9 +81,10 @@ var (
 	}
 
 	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
-		"show-top-emojis":     showTopEmojis,
-		"show-top-users":      showTopUsers,
-		"purge-recent-emojis": purgeRecentEmojis,
+		"show-top-emojis":      showTopEmojis,
+		"show-top-users":       showTopUsers,
+		"add-auto-scrubber":    addAutoScrubber,
+		"remove-auto-scrubber": removeAutoScrubber,
 	}
 )
 
@@ -139,7 +154,7 @@ func showTopEmojis(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		users := []string{}
 		if top[v].EmojiID == top[v].EmojiName {
 			// Handle bad data with stock emojis
-			msg += fmt.Sprintf(":%s: %d", top[v].EmojiName, top[v].Count)
+			msg += fmt.Sprintf("%s %d", top[v].EmojiName, top[v].Count)
 		} else {
 			msg += fmt.Sprintf("<:%s:%s> %d", top[v].EmojiName, top[v].EmojiID, top[v].Count)
 		}
@@ -204,7 +219,7 @@ func showTopUsers(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		for _, sv := range subkeys {
 			if topUsers[sv].EmojiID == topUsers[sv].EmojiName {
 				// Handle bad data with stock emojis
-				users = append(users, fmt.Sprintf(":%s: %d", topUsers[sv].EmojiName, topUsers[sv].Count))
+				users = append(users, fmt.Sprintf("%s %d", topUsers[sv].EmojiName, topUsers[sv].Count))
 			} else {
 				users = append(users, fmt.Sprintf("<:%s:%s> %d", topUsers[sv].EmojiName, topUsers[sv].EmojiID, topUsers[sv].Count))
 			}
@@ -221,8 +236,8 @@ func showTopUsers(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	})
 }
 
-// purgeRecentEmojis - Purges recent emojis for a user
-func purgeRecentEmojis(s *discordgo.Session, i *discordgo.InteractionCreate) {
+// addAutoScrubber - Scrubs emojis after a set period
+func addAutoScrubber(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	// Access options in the order provided by the user.
 	options := i.ApplicationCommandData().Options
 	optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
@@ -245,52 +260,86 @@ func purgeRecentEmojis(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		return
 	}
 
-	hours := int64(24)
-	if opt, ok := optionMap["hours"]; ok {
-		hours = opt.IntValue()
+	var minutes int64
+	if opt, ok := optionMap["minutes"]; ok {
+		minutes = opt.IntValue()
 	} else {
-		slog.Error("Invalid hours option provided")
+		slog.Error("Invalid time option provided")
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
-				Content:         "No hours specified",
+				Content:         "No minutes specified",
 				AllowedMentions: &discordgo.MessageAllowedMentions{},
 			},
 		})
 		return
 	}
 
-	emojis, err := b.Db.GetRecentEmojisForUser(i.GuildID, user.ID, hours)
+	dur := time.Duration(minutes) * time.Minute
+	err := startScrubbingUser(i.GuildID, user.ID, dur)
 	if err != nil {
-		slog.Error("Error getting recent emojis for user", "err", err)
+		slog.Error("Error starting auto scrubber", "err", err, "guild_id", i.GuildID, "user_id", user.ID, "duration", dur)
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content:         fmt.Sprintf("Error auto scrubbing user %s: %+v", user.Username, err.Error()),
+				AllowedMentions: &discordgo.MessageAllowedMentions{},
+			},
+		})
+
 		return
-	}
-
-	x := 0
-	for _, emoji := range emojis {
-		emojiID := emoji.EmojiID
-		if emojiID == "" {
-			emojiID = emoji.EmojiName
-		}
-
-		err := s.MessageReactionRemove(emoji.ChannelID, emoji.MessageID, emojiID, emoji.UserID)
-		if err != nil {
-			slog.Error("Error removing emoji reaction", "err", err, "emoji", emoji.EmojiID, "user", user.ID)
-			continue
-		}
-
-		err = b.Db.DeleteEmojiUsage(i.GuildID, emoji.ChannelID, emoji.MessageID, emoji.UserID, emoji.EmojiID)
-		if err != nil {
-			slog.Error("Error deleting emoji usage", "err", err)
-			continue
-		}
-		x++
 	}
 
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
-			Content:         fmt.Sprintf("Purged %d emojis for user %s", x, user.Username),
+			Content:         fmt.Sprintf("Will remove %s's emojis every %d minutes", user.Username, minutes),
+			AllowedMentions: &discordgo.MessageAllowedMentions{},
+		},
+	})
+}
+
+// removeAutoScrubber - Stops scrubbing emojis
+func removeAutoScrubber(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	// Access options in the order provided by the user.
+	options := i.ApplicationCommandData().Options
+	optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
+	for _, opt := range options {
+		optionMap[opt.Name] = opt
+	}
+
+	user := &discordgo.User{}
+	if opt, ok := optionMap["user"]; ok {
+		user = opt.UserValue(s)
+	} else {
+		slog.Error("Invalid user option provided")
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content:         "No user specified",
+				AllowedMentions: &discordgo.MessageAllowedMentions{},
+			},
+		})
+		return
+	}
+
+	err := stopScrubbingUser(i.GuildID, user.ID)
+	if err != nil {
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content:         fmt.Sprintf("Error stopping scrub on %s: %+v", user.Username, err.Error()),
+				AllowedMentions: &discordgo.MessageAllowedMentions{},
+			},
+		})
+
+		return
+	}
+
+	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content:         fmt.Sprintf("Stopped scrubbing %s's emojis", user.Username),
 			AllowedMentions: &discordgo.MessageAllowedMentions{},
 		},
 	})
