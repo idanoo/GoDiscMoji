@@ -60,9 +60,13 @@ func runScrubber() {
 						for _, e := range emojis {
 							if e.Timestamp.Add(interval).Before(time.Now()) {
 								// Ignore errors here as it's likely bad data
-								err := b.DiscordSession.MessageReactionRemove(e.ChannelID, e.MessageID, e.EmojiID, e.UserID)
+								emo := e.EmojiID
+								if emo == "" {
+									emo = e.EmojiName
+								}
+								err := b.DiscordSession.MessageReactionRemove(e.ChannelID, e.MessageID, emo, e.UserID)
 								if err != nil {
-									slog.Error("Error removing emoji reaction", "err", err, "emoji", e.EmojiID, "user", e.UserID)
+									slog.Error("Error removing emoji reaction", "err", err, "emoji", emo, "user", e.UserID)
 								}
 
 								// We care if we can't delete from our DB..
