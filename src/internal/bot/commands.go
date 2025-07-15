@@ -253,7 +253,7 @@ func addAutoScrubber(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		return
 	}
 
-	err := startScrubbingUser(i.GuildID, user.ID)
+	err := scrub.startScrubbingUser(i.GuildID, user.ID)
 	if err != nil {
 		slog.Error("Error starting auto scrubber", "err", err, "guild_id", i.GuildID, "user_id", user.ID)
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -300,7 +300,7 @@ func removeAutoScrubber(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		return
 	}
 
-	err := stopScrubbingUser(i.GuildID, user.ID)
+	err := scrub.stopScrubbingUser(i.GuildID, user.ID)
 	if err != nil {
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
