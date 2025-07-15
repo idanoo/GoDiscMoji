@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -47,8 +46,8 @@ var (
 			},
 		},
 		{
-			Name:                     "add-auto-scrubber",
-			Description:              "Auto Scrub Emoijis after a set period",
+			Name:                     "add-magic-tool",
+			Description:              "Runs a script on reaction for user",
 			DefaultMemberPermissions: &defaultRunCommandPermissions,
 			Options: []*discordgo.ApplicationCommandOption{
 				{
@@ -57,17 +56,11 @@ var (
 					Description: "Select user",
 					Required:    true,
 				},
-				{
-					Type:        discordgo.ApplicationCommandOptionInteger,
-					Name:        "minutes",
-					Description: "Every X minutes",
-					Required:    true,
-				},
 			},
 		},
 		{
-			Name:                     "remove-auto-scrubber",
-			Description:              "Stop autoscrubbing emojis after a set period",
+			Name:                     "remove-magic-tool",
+			Description:              "Stops running a script on reaction for user",
 			DefaultMemberPermissions: &defaultRunCommandPermissions,
 			Options: []*discordgo.ApplicationCommandOption{
 				{
@@ -81,10 +74,10 @@ var (
 	}
 
 	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
-		"show-top-emojis":      showTopEmojis,
-		"show-top-users":       showTopUsers,
-		"add-auto-scrubber":    addAutoScrubber,
-		"remove-auto-scrubber": removeAutoScrubber,
+		"show-top-emojis":   showTopEmojis,
+		"show-top-users":    showTopUsers,
+		"add-magic-tool":    addAutoScrubber,
+		"remove-magic-tool": removeAutoScrubber,
 	}
 )
 
@@ -195,7 +188,7 @@ func showTopUsers(s *discordgo.Session, i *discordgo.InteractionCreate) {
 
 	// Sort keys
 	keys := make([]int, 0)
-	for k, _ := range top {
+	for k := range top {
 		keys = append(keys, k)
 	}
 	sort.Ints(keys)
@@ -260,29 +253,13 @@ func addAutoScrubber(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		return
 	}
 
-	var minutes int64
-	if opt, ok := optionMap["minutes"]; ok {
-		minutes = opt.IntValue()
-	} else {
-		slog.Error("Invalid time option provided")
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content:         "No minutes specified",
-				AllowedMentions: &discordgo.MessageAllowedMentions{},
-			},
-		})
-		return
-	}
-
-	dur := time.Duration(minutes) * time.Minute
-	err := startScrubbingUser(i.GuildID, user.ID, dur)
+	err := startScrubbingUser(i.GuildID, user.ID)
 	if err != nil {
-		slog.Error("Error starting auto scrubber", "err", err, "guild_id", i.GuildID, "user_id", user.ID, "duration", dur)
+		slog.Error("Error starting auto scrubber", "err", err, "guild_id", i.GuildID, "user_id", user.ID)
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
-				Content:         fmt.Sprintf("Error auto scrubbing user %s: %+v", user.Username, err.Error()),
+				Content:         ":x:",
 				AllowedMentions: &discordgo.MessageAllowedMentions{},
 			},
 		})
@@ -293,7 +270,7 @@ func addAutoScrubber(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
-			Content:         fmt.Sprintf("Will remove %s's emojis after %d minutes", user.Username, minutes),
+			Content:         ":white_check_mark:",
 			AllowedMentions: &discordgo.MessageAllowedMentions{},
 		},
 	})
@@ -328,7 +305,7 @@ func removeAutoScrubber(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
-				Content:         fmt.Sprintf("Error stopping scrub on %s: %+v", user.Username, err.Error()),
+				Content:         ":x:",
 				AllowedMentions: &discordgo.MessageAllowedMentions{},
 			},
 		})
@@ -339,7 +316,7 @@ func removeAutoScrubber(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
-			Content:         fmt.Sprintf("Stopped scrubbing %s's emojis", user.Username),
+			Content:         ":white_check_mark:",
 			AllowedMentions: &discordgo.MessageAllowedMentions{},
 		},
 	})

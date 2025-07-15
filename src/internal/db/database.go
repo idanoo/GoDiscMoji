@@ -60,34 +60,25 @@ func (db *Database) runMigrations() (*Database, error) {
 		return db, err
 	}
 
-	_, err = db.db.Exec("CREATE TABLE IF NOT EXISTS `auto_scrubber` (" +
+	// Clean up old tables
+	_, err = db.db.Exec("DROP TABLE IF EXISTS `auto_scrubber`")
+	if err != nil {
+		return db, err
+	}
+
+	_, err = db.db.Exec("CREATE TABLE IF NOT EXISTS `scrub` (" +
 		"`id` INTEGER PRIMARY KEY AUTOINCREMENT, " +
 		"`guild_id` TEXT, " +
-		"`user_id` TEXT, " +
-		"`duration` INT " +
+		"`user_id` TEXT " +
 		")")
 	if err != nil {
 		return db, err
 	}
 
-	_, err = db.db.Exec("CREATE INDEX IF NOT EXISTS `idx_auto_scrubber_guild_user` ON `auto_scrubber` (`guild_id`, `user_id`)")
+	_, err = db.db.Exec("CREATE INDEX IF NOT EXISTS `idx_scrub_guildid_userid` ON `scrub` (`guild_id`, `user_id`)")
 	if err != nil {
 		return db, err
 	}
-
-	// emojitest := map[string]string{
-	// 	"pepe_analyze": "579431592624390147",
-	// 	"kekw":         "1317987954102112347",
-	// 	"pepe_kek":     "1300985103182336010",
-	// 	"KEKW":         "649918246119669770",
-	// }
-
-	// for name, id := range emojitest {
-	// 	_, err = db.db.Exec("UPDATE `emoji_usage` SET `emoji_id` = '" + id + "' WHERE `emoji_name` = '" + name + "'")
-	// 	if err != nil {
-	// 		return db, err
-	// 	}
-	// }
 
 	return db, nil
 }

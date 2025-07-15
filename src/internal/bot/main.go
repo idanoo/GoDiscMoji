@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"sync"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/idanoo/GoDiscMoji/internal/db"
@@ -19,6 +20,10 @@ type Bot struct {
 
 	registeredCommands []*discordgo.ApplicationCommand
 	Db                 *db.Database
+
+	// Scrub map[GuildID][UserID]bool
+	scrubs      *map[string]map[string]bool
+	scrubsMutex sync.RWMutex
 }
 
 // New - Return new instance of *Bot
@@ -69,8 +74,8 @@ func (bot *Bot) Start() error {
 	bot.RegisterCommands()
 	b = bot
 
-	// Add scrubber
-	initScrubber()
+	// Add scrubs
+	initScrub()
 
 	// Keep running untill there is NO os interruption (ctrl + C)
 	slog.Info("Bot is now running. Press CTRL-C to exit.")
@@ -81,9 +86,6 @@ func (bot *Bot) Start() error {
 	// Deregister any commands we created
 	bot.DeregisterCommands()
 
-	// Stop scrubbin!
-	close(scrubberStop)
-
 	return nil
 }
 
@@ -91,6 +93,15 @@ func (bot *Bot) Start() error {
 func (bot *Bot) HandleAddReaction(discord *discordgo.Session, reaction *discordgo.MessageReactionAdd) {
 	// Ignore Dyno user
 	if reaction.UserID == dynoUserID {
+		return
+	}
+
+	if scrub.shouldScrub(reaction.GuildID, reaction.UserID) {
+		err := b.DiscordSession.MessageReactionRemove(reaction.ChannelID, reaction.MessageID, reaction.Emoji.ID, reaction.UserID)
+		if err != nil {
+			slog.Error("Error removing emoji reaction", "err", err, "reaction", reaction)
+		}
+
 		return
 	}
 
