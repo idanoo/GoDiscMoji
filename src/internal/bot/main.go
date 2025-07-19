@@ -70,6 +70,17 @@ func (bot *Bot) Start() error {
 	}
 	defer discord.Close()
 
+	// Debug logged cmds
+	// cmds, err := discord.ApplicationCommands(discord.State.Application.ID, "")
+	// if err != nil {
+	// 	slog.Error("Failed to get existing commands", "err", err)
+	// } else {
+	// 	for _, cmd := range cmds {
+	// 		slog.Info("Registered command", "name", cmd.Name, "id", cmd.ID)
+	//      // _, _ = discord.ApplicationCommandBulkOverwrite(discord.State.Application.ID, "", nil)
+	// 	}
+	// }
+
 	// Register commands
 	bot.RegisterCommands()
 	b = bot
