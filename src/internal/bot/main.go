@@ -97,7 +97,7 @@ func (bot *Bot) HandleAddReaction(discord *discordgo.Session, reaction *discordg
 	}
 
 	if scrub.shouldScrub(reaction.GuildID, reaction.UserID) {
-		err := b.DiscordSession.MessageReactionRemove(reaction.ChannelID, reaction.MessageID, reaction.Emoji.ID, reaction.UserID)
+		err := b.DiscordSession.MessageReactionRemove(reaction.ChannelID, reaction.MessageID, reaction.Emoji.Name, reaction.UserID)
 		if err != nil {
 			slog.Error("Error removing emoji reaction", "err", err, "reaction", reaction)
 		}
