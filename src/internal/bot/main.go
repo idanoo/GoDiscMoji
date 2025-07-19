@@ -97,13 +97,33 @@ func (bot *Bot) HandleAddReaction(discord *discordgo.Session, reaction *discordg
 	}
 
 	if scrub.shouldScrub(reaction.GuildID, reaction.UserID) {
-		slog.Error("Scrubbed emoji reaction", "id", reaction.Emoji.ID, "name", reaction.Emoji.Name)
-		err := b.DiscordSession.MessageReactionRemove(reaction.ChannelID, reaction.MessageID, reaction.Emoji.Name, reaction.UserID)
+		slog.Info("Scrubbing with ID", "id", reaction.Emoji.ID, "name", reaction.Emoji.Name)
+		err := b.DiscordSession.MessageReactionRemove(reaction.ChannelID, reaction.MessageID, reaction.Emoji.ID, reaction.UserID)
 		if err != nil {
-			slog.Error("Error removing emoji reaction", "err", err, "reaction", reaction)
+			slog.Info("Scrubbing with name", "id", reaction.Emoji.ID, "name", reaction.Emoji.Name, "err", err)
+			err := b.DiscordSession.MessageReactionRemove(reaction.ChannelID, reaction.MessageID, reaction.Emoji.Name, reaction.UserID)
+			if err != nil {
+				slog.Error("Failed to remove emoji reaction", "err", err, "reaction", reaction)
+			} else {
+				return
+			}
+		} else {
+			return
 		}
+		// slog.Error("Scrubbed emoji reaction", "id", reaction.Emoji.ID, "name", reaction.Emoji.Name)
+		// ident := reaction.Emoji.ID
+		// if ident == "" {
+		// 	ident = reaction.Emoji.Name
+		// }
 
-		return
+		// err := b.DiscordSession.MessageReactionRemove(reaction.ChannelID, reaction.MessageID, ident, reaction.UserID)
+		// if err == nil {
+		// 	return
+
+		// }
+
+		// Don't return and make sure we log if the remove failed
+		// slog.Error("Error removing emoji reaction", "err", err, "reaction", reaction)
 	}
 
 	err := bot.Db.LogEmojiUsage(reaction.GuildID, reaction.ChannelID, reaction.MessageID, reaction.UserID, reaction.Emoji.ID, reaction.Emoji.Name)
